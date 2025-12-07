@@ -57,11 +57,11 @@ cmake ..
 You can use standard CMake commands to build and run tests.
 
 ```bash
-# Build everything (automatically uses all CPU cores if configured)
-cmake --build . --parallel
+# Build everything with make (run inside of build folder)
+make
 
 # Run all tests
-ctest --output-on-failure
+ctest
 ```
 
 ### 3. Run Specific Tests
@@ -73,6 +73,9 @@ ctest -R two_sum
 
 # Run all tests for the "Arrays" topic
 ctest -R arrays
+
+# Run a specific test suite with gtest
+./two_crystal_balls_test
 ```
 
 ## Adding a new problem
