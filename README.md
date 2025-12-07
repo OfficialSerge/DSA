@@ -43,7 +43,7 @@ A batteries-included workspace for grinding LeetCode problems in modern C++ whil
 The project automatically handles the GoogleTest submodule update during the first build.
 
 ```bash
-git clone --recursive git@github.com:<you>/leetcode.git
+git clone --recursive git@github.com:OfficialSerge/DSA.git
 cd leetcode
 
 # Create build directory
