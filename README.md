@@ -14,12 +14,22 @@ A batteries-included workspace for grinding LeetCode problems in modern C++ whil
 ├── CMakeLists.txt            # Top-level build + testing orchestration
 ├── cmake/                    # Helper modules (submodule updater, etc.)
 ├── external/googletest/      # Vendored GoogleTest submodule
-├── src/arrays/               # Source files grouped by topic (arrays, dp, graph, ...)
-│   ├── two_sum.cpp/.h
-│   └── best_time_to_buy_stock.cpp/.h
-├── tests/arrays/             # 1:1 GoogleTest specs for each implementation
-│   ├── two_sum_test.cpp
-│   └── best_time_to_buy_stock_test.cpp
+├── scripts/                  # Helper scripts for fast workflow
+│   ├── build.sh              # Compiles the project
+│   ├── test.sh               # Runs all tests
+│   └── quick_test.sh         # Runs specific tests
+├── src/                      # Implementation files
+│   ├── arrays/               # Grouped by topic
+│   │   ├── two_sum.cpp/.h
+│   │   └── best_time_to_buy_stock.cpp/.h
+│   └── lists/
+│       └── queue.h           # Template classes in headers
+├── tests/                    # 1:1 GoogleTest specs for each implementation
+│   ├── arrays/
+│   │   ├── two_sum_test.cpp
+│   │   └── best_time_to_buy_stock_test.cpp
+│   └── lists/
+│       └── queue_test.cpp
 └── .clang-format             # Repository-wide formatting contract
 ```
 
@@ -28,67 +38,68 @@ A batteries-included workspace for grinding LeetCode problems in modern C++ whil
 | Tool            | Why you need it                                  |
 |-----------------|--------------------------------------------------|
 | CMake ≥ 3.14    | Generates the build system + `compile_commands`. |
-| clang++/AppleClang 14+ or GCC 11+ | Compiles the C++17 sources.       |
-| Ninja or Make   | (Optional) Faster incremental builds.            |
+| clang++/GCC     | Compiles the C++17 sources.                      |
 | Python 3        | Required by some GoogleTest helper scripts.      |
-| Xcode CLT (macOS)| Provides the `clangd`/`clang-format` binaries.   |
-
-> **macOS tip:** Run `xcode-select --install` to pick up the command-line tools, then `xcrun --find clang-format` to locate Apple’s bundled formatter.
 
 ## Getting started
 
+### 1. Build and Run All Tests
+The easiest way to get started is using the helper scripts:
+
 ```bash
-# Clone the repo and pull the GoogleTest submodule
-git clone --recursive git@github.com:<you>/leetcode.git
-cd leetcode
-# (If you forgot --recursive)
-git submodule update --init --recursive
+# Build everything (automatically uses all CPU cores)
+./scripts/build.sh
 
-# Configure + build (Ninja generator shown, use Unix Makefiles if you prefer)
-cmake -S . -B build -G Ninja
-cmake --build build
-
-# Run the full test suite
-ctest --test-dir build --output-on-failure
+# Build and run all tests
+./scripts/test.sh
 ```
 
-`CMAKE_EXPORT_COMPILE_COMMANDS` is already enabled, so `build/compile_commands.json` will appear after the first configure. Point clangd/other tooling at that file.
+### 2. Run Specific Tests
+To focus on a single problem without running the entire suite:
+
+```bash
+# Usage: ./scripts/quick_test.sh <problem_name> [filter]
+
+# Run all tests for Two Sum
+./scripts/quick_test.sh two_sum
+
+# Run only the "BasicExample" test case for Two Sum
+./scripts/quick_test.sh two_sum "BasicExample"
+```
 
 ## Adding a new problem
 
-1. Create the header + implementation under `src/<topic>/`. Follow the naming convention (`problem_name.h/.cpp`).
-2. Add a GoogleTest spec in `tests/<topic>/problem_name_test.cpp`. The `tests/<topic>/CMakeLists.txt` automatically matches `*_test.cpp` files with the corresponding implementation.
-3. Reconfigure if you added a brand-new topic directory: update `CMakeLists.txt` to `add_subdirectory(tests/<topic>)`.
-4. Rebuild + run `ctest`. Failing tests should guide any edge cases you missed.
+The build system is **automated**. You do not need to edit `CMakeLists.txt` when adding new problems within existing topics.
+
+1. **Create the Source File**
+   Create `src/<topic>/my_problem.cpp` (and `.h` if desired).
+
+2. **Create the Test File**
+   Create `tests/<topic>/my_problem_test.cpp`.
+   *Note: The test file MUST end in `_test.cpp` to be detected.*
+
+3. **Build**
+   Run `./scripts/build.sh`. CMake will automatically detect the new files, link them, and register the tests.
+
+4. **New Topics**
+   If you add a new folder (e.g. `src/graphs` and `tests/graphs`), you only need to add one line to the root `CMakeLists.txt`:
+   ```cmake
+   register_topic_tests(graphs)
+   ```
 
 ## Tooling, clangd, and formatting
 
-- The repo-level `.clang-format` defines the canonical style (LLVM-based with a 100-column limit). Generate a fresh config with:
+- The repo-level `.clang-format` defines the canonical style (Google style with adjustments).
+- `compile_commands.json` is automatically generated in `build/`, enabling full LSP support in Neovim/VSCode.
+- Recommended clangd flags:
   ```bash
-  $(xcrun --find clang-format) --style=llvm --dump-config > .clang-format
-  ```
-  Then tweak the options you care about (pointer alignment, column width, etc.).
-- Recommended clangd command (Set via `nvim-lspconfig` or your editor):
-  ```bash
-  clangd \
-    --background-index \
-    --clang-tidy \
-    --header-insertion=iwyu \
-    --completion-style=detailed \
-    --function-arg-placeholders \
-    --style=file \
-    --fallback-style=none
-  ```
-  `--style=file` ensures clangd respects `.clang-format`; `--fallback-style=none` makes missing configs obvious instead of silently reverting to LLVM/Google defaults.
-- Format a file on demand with `:ClangFormat` (Neovim) or directly:
-  ```bash
-  $(xcrun --find clang-format) -i src/arrays/two_sum.cpp
+  clangd --background-index --clang-tidy --header-insertion=iwyu
   ```
 
 ## FAQ / Troubleshooting
 
-- **Tests fail to build because Googletest isn’t found** – re-run `git submodule update --init --recursive` or delete `external/googletest` and re-pull.
-- **clangd can’t find headers** – ensure Neovim points `clangd` at `build/compile_commands.json` (or symlink it to the repo root) and rebuild after adding new files.
-- **Need to support another language/topic** – mirror the `src/arrays` + `tests/arrays` structure for DP, graphs, etc., then add the new test folder to the root `CMakeLists.txt`.
+- **Tests fail to build because Googletest isn’t found** – re-run `git submodule update --init --recursive`.
+- **"Test executable not found"** – Ensure your test file ends in `_test.cpp` and run `./scripts/build.sh` to refresh CMake.
+- **clangd can’t find headers** – Ensure `build/compile_commands.json` exists.
 
 Ship fast, keep the red-green-refactor loop tight, and always profile the slow solutions before committing to fancy optimizations. Happy grinding!
