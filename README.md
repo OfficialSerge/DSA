@@ -1,6 +1,6 @@
 # LeetCode Practice (C++17 + GoogleTest)
 
-A batteries-included workspace for grinding LeetCode problems in modern C++ while keeping the edit/compile/test loop fast. Every solution ships with focused unit tests so you can iterate with confidence and benchmark different approaches over time.
+A batteries-included workspace for grinding LeetCode problems in modern C++ while keeping the edit/compile/test loop fast. Every solution ships with focused unit tests so you can iterate with confidence.
 
 ## Project goals
 
@@ -14,10 +14,6 @@ A batteries-included workspace for grinding LeetCode problems in modern C++ whil
 ├── CMakeLists.txt            # Top-level build + testing orchestration
 ├── cmake/                    # Helper modules (submodule updater, etc.)
 ├── external/googletest/      # Vendored GoogleTest submodule
-├── scripts/                  # Helper scripts for fast workflow
-│   ├── build.sh              # Compiles the project
-│   ├── test.sh               # Runs all tests
-│   └── quick_test.sh         # Runs specific tests
 ├── src/                      # Implementation files
 │   ├── arrays/               # Grouped by topic
 │   │   ├── two_sum.cpp/.h
@@ -39,32 +35,44 @@ A batteries-included workspace for grinding LeetCode problems in modern C++ whil
 |-----------------|--------------------------------------------------|
 | CMake ≥ 3.14    | Generates the build system + `compile_commands`. |
 | clang++/GCC     | Compiles the C++17 sources.                      |
-| Python 3        | Required by some GoogleTest helper scripts.      |
+| Git             | Manages submodules (GoogleTest).                 |
 
 ## Getting started
 
-### 1. Build and Run All Tests
-The easiest way to get started is using the helper scripts:
+### 1. Clone and Configure
+The project automatically handles the GoogleTest submodule update during the first build.
 
 ```bash
-# Build everything (automatically uses all CPU cores)
-./scripts/build.sh
+git clone --recursive git@github.com:<you>/leetcode.git
+cd leetcode
 
-# Build and run all tests
-./scripts/test.sh
+# Create build directory
+mkdir build && cd build
+
+# Configure the project
+cmake ..
 ```
 
-### 2. Run Specific Tests
-To focus on a single problem without running the entire suite:
+### 2. Build and Test
+You can use standard CMake commands to build and run tests.
 
 ```bash
-# Usage: ./scripts/quick_test.sh <problem_name> [filter]
+# Build everything (automatically uses all CPU cores if configured)
+cmake --build . --parallel
 
+# Run all tests
+ctest --output-on-failure
+```
+
+### 3. Run Specific Tests
+To focus on a single problem without running the entire suite, use the `-R` (Regex) flag with `ctest`:
+
+```bash
 # Run all tests for Two Sum
-./scripts/quick_test.sh two_sum
+ctest -R two_sum
 
-# Run only the "BasicExample" test case for Two Sum
-./scripts/quick_test.sh two_sum "BasicExample"
+# Run all tests for the "Arrays" topic
+ctest -R arrays
 ```
 
 ## Adding a new problem
@@ -79,7 +87,7 @@ The build system is **automated**. You do not need to edit `CMakeLists.txt` when
    *Note: The test file MUST end in `_test.cpp` to be detected.*
 
 3. **Build**
-   Run `./scripts/build.sh`. CMake will automatically detect the new files, link them, and register the tests.
+   Run `cmake ..` (or just rebuild) to let CMake detect the new files.
 
 4. **New Topics**
    If you add a new folder (e.g. `src/graphs` and `tests/graphs`), you only need to add one line to the root `CMakeLists.txt`:
@@ -89,7 +97,7 @@ The build system is **automated**. You do not need to edit `CMakeLists.txt` when
 
 ## Tooling, clangd, and formatting
 
-- The repo-level `.clang-format` defines the canonical style (Google style with adjustments).
+- The repo-level `.clang-format` defines the canonical style.
 - `compile_commands.json` is automatically generated in `build/`, enabling full LSP support in Neovim/VSCode.
 - Recommended clangd flags:
   ```bash
@@ -99,7 +107,7 @@ The build system is **automated**. You do not need to edit `CMakeLists.txt` when
 ## FAQ / Troubleshooting
 
 - **Tests fail to build because Googletest isn’t found** – re-run `git submodule update --init --recursive`.
-- **"Test executable not found"** – Ensure your test file ends in `_test.cpp` and run `./scripts/build.sh` to refresh CMake.
+- **"Test executable not found"** – Ensure your test file ends in `_test.cpp` and re-run `cmake ..`.
 - **clangd can’t find headers** – Ensure `build/compile_commands.json` exists.
 
 Ship fast, keep the red-green-refactor loop tight, and always profile the slow solutions before committing to fancy optimizations. Happy grinding!
